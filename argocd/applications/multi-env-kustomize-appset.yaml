@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: multi-env-kustomize-appset
+spec:
+  generators:
+  - matrix:
+      generators:
+      - git:
+          repoURL: https://github.com/santosh-gh/k8s-21-deployment.git
+          revision: HEAD
+          directories:
+          - path: kustomize-manifests/*
+      - list:
+          elements:
+          - env: dev
+          - env: test
+          - env: prod
+  template:
+    metadata:
+      name: '{{path.basename}}-{{env}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/santosh-gh/k8s-21-deployment.git
+        targetRevision: HEAD
+        path: 'kustomize-manifests/{{path.basename}}/overlays/{{env}}'        
+      destination:
+        server:  https://kubernetes.default.svc
+        namespace:  '{{env}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+        - CreateNamespace=true
